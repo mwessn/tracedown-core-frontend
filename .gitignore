@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# IntelliJ
+.idea/
+
+# Environment
+.env
+.env.*
+
+# ESLint
+.eslintcache
+
+tmp/
+.editorconfig
+*.tar.gz
+
+!.env.development

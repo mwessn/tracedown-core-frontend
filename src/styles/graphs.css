@@ -1,0 +1,11 @@
+:root {
+  --chart-line: var(--color-accent-primary);
+  --chart-success: var(--color-accent-secondary);
+  --chart-failure: var(--color-status-failure);
+  --chart-warning: var(--color-status-warning);
+  /* Skipped probes: visible but deliberately muted. */
+  --chart-dimmed: color-mix(in srgb, var(--color-text-secondary) 55%, transparent);
+  --chart-grid: color-mix(in srgb, var(--color-text-secondary) 30%, transparent);
+
+}
+

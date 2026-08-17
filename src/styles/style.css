@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background */
+  --color-background-primary: #222729;
+  --color-background-secondary: #0e1719;
+
+    /* Grid */
+    /*--color-grid-primary: #353c3e; background-primary is used as a base */
+    --color-grid-secondary: #322e2e;
+
+  /* Accents */
+  --color-accent-primary: #ff5e5b;
+  --color-accent-secondary: #3c3c3c;
+
+  /* Text */
+  --color-text-primary: #66a8e6;
+  --color-text-secondary: #9eaeac;
+
+  /* Statuses / notifications */
+  --color-status-success: #22c55e;
+  --color-status-warning: #f59e0b;
+  --color-status-failure: #ef4444;
+
+  /* Layout: headbar height, the viewport remainder below it, and the width
+     shared by the nav ribbon and the headbar's logo slot.
+     Usable in any spacing utility: h-headbar, w-sidebar, top-headbar, … */
+  /* Horizontal inset shared by all core layout elements — equal to the
+     tab-label padding so headers, stats, charts and tab text align. */
+  --spacing-gutter: 1rem;
+  --spacing-headbar: 4rem;
+  --spacing-under-headbar: calc(100vh - var(--spacing-headbar));
+  --spacing-sidebar: 10rem;
+}
+
+@utility hover-muted {
+  &:hover {
+    opacity: 0.5;
+  }
+}
+
+@utility radial-* {
+  background-image: radial-gradient(--value(--color-*) 1px, transparent 0);
+  background-size: 0.5rem 0.5rem;
+}
+
+@utility slashed-* {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      --value(--color-*) 10px,
+      --value(--color-*) 20px
+    );
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, var(--color-grid-secondary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid-secondary) 1px, transparent 1px);
+  background-size: 6rem 6rem;
+}
+
+* {
+  /* Bundled via @fontsource-variable (imported in main.ts) — the variable
+     face registers as 'Red Hat Display Variable'. */
+  font-family: 'Red Hat Display Variable', 'Red Hat Display', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+.full {
+  width: 100%;
+  height: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-secondary) 50%, transparent);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* TransitionGroup classes for live-prepended probe results (ServiceResultsTab) */
+.result-item-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.result-item-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.result-item-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.result-item-leave-to {
+  opacity: 0;
+}
+
+.result-item-move {
+  transition: transform 0.3s ease;
+}
