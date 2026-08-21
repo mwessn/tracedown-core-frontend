@@ -78,6 +78,19 @@
       >
         <div class="space-y-3 max-w-lg">
           <DomainChallengeInfo :domain="justCreated" />
+          <!-- The same hand-off the row offers: the moment right after adding a
+               domain is when someone most wants it, not after hunting for the
+               row and expanding it. -->
+          <template v-if="justCreated.verificationType === 'dns-01'">
+            <SlotOutlet
+              name="domain-dns-setup"
+              :slot-props="{ domain: justCreated }"
+            />
+            <DomainDnsHandoff
+              v-if="!hostOwnsDnsSetup"
+              :domain="justCreated"
+            />
+          </template>
           <p class="text-xs text-text-secondary">
             {{ t('domains.createdHint') }}
           </p>
@@ -99,10 +112,13 @@ import EmptyState from '@/components/core/EmptyState.vue';
 import PrimaryButton from '@/components/core/buttons/PrimaryButton.vue';
 import CreateToggleButton from '@/components/core/buttons/CreateToggleButton.vue';
 import ModalDialog from '@/components/core/ModalDialog.vue';
+import SlotOutlet from '@/components/core/SlotOutlet.vue';
+import DomainDnsHandoff from '@/components/settings/DomainDnsHandoff.vue';
 import DomainChallengeInfo from '@/components/settings/DomainChallengeInfo.vue';
 import DomainListRow from '@/components/settings/DomainListRow.vue';
 import TextInput from '@/components/core/input/TextInput.vue';
 import AppSelect from '@/components/core/input/AppSelect.vue';
+import { slotIsFilled } from '@/config/extensions';
 import { useDomainStore } from '@/store/core/domain';
 import { useAuthStore } from '@/store/core/auth';
 import { useNotificationStore } from '@/store/ui/notifications';
@@ -115,6 +131,8 @@ import type { SelectOption } from '@/types/ui/common';
  * no body saving, 5-minute minimum interval.
  */
 const { t } = useI18n();
+/** A host registered its own DNS setup surface, so ours steps aside. */
+const hostOwnsDnsSetup = slotIsFilled('domain-dns-setup');
 const domainStore = useDomainStore();
 const authStore = useAuthStore();
 const notifications = useNotificationStore();

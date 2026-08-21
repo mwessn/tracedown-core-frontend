@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { http } from '@/config/requests';
 import type {
-  CreateDomainRequest, DomainSummary, VerifyDomainResponse,
+  CreateDomainRequest, DnsHandoff, DomainSummary, VerifyDomainResponse,
 } from '@/data/domains/DomainDto';
 import type { ActionDataResult, ActionResult } from '@/types/actions';
 import type { Page } from '@/types/pfs';
@@ -35,14 +35,37 @@ export const useDomainStore = defineStore('domain', () => {
     return { ok: true, data: res.data };
   }
 
-  async function verifyDomain(domainId: string): Promise<ActionDataResult<VerifyDomainResponse>> {
-    const res = await http.post<VerifyDomainResponse, Record<string, never>>(`/domains/${domainId}/verify`, {});
+  /** Reflects a passed check in the list without a refetch. */
+  function markVerified(domainId: string) {
+    domains.value = domains.value.map(d =>
+      d.id === domainId ? { ...d, status: 'verified', lapsed: false } : d);
+  }
+
+  /**
+   * Re-checks the challenge. `silent` is for background polling — a check the
+   * user did not ask for has no business raising the app-wide loading state.
+   */
+  async function verifyDomain(
+    domainId: string,
+    options?: { silent?: boolean },
+  ): Promise<ActionDataResult<VerifyDomainResponse>> {
+    const res = await http.post<VerifyDomainResponse, Record<string, never>>(
+      `/domains/${domainId}/verify`,
+      {},
+      { disableLoading: options?.silent },
+    );
     if (!res.success || !res.data) {
       return { ok: false, message: res.errorInfo?.message };
     }
-    if (res.data.verified) {
-      domains.value = domains.value.map(d =>
-        d.id === domainId ? { ...d, status: 'verified', lapsed: false } : d);
+    if (res.data.verified) markVerified(domainId);
+    return { ok: true, data: res.data };
+  }
+
+  /** Where this domain's DNS records are edited, when we recognise the provider. */
+  async function fetchDnsHandoff(domainId: string): Promise<ActionDataResult<DnsHandoff>> {
+    const res = await http.get<DnsHandoff>(`/domains/${domainId}/dns-handoff`, { disableLoading: true });
+    if (!res.success || !res.data) {
+      return { ok: false, message: res.errorInfo?.message };
     }
     return { ok: true, data: res.data };
   }
@@ -66,5 +89,8 @@ export const useDomainStore = defineStore('domain', () => {
     return { ok: true };
   }
 
-  return { domains, loading, fetchDomains, createDomain, verifyDomain, setWildcard, deleteDomain };
+  return {
+    domains, loading, fetchDomains, createDomain, verifyDomain, setWildcard, deleteDomain,
+    markVerified, fetchDnsHandoff,
+  };
 });
