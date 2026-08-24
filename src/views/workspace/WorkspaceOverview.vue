@@ -11,7 +11,7 @@
           />
         </div>
         <CreateToggleButton
-          v-if="authStore.canWriteScoped([`workspace::${workspaceId}`])"
+          v-if="canEditWorkspace"
           v-model="showCreateForm"
           :label-text="t('project.createNew')"
           :disabled="!isFeatureEnabled('project.create')"
@@ -82,6 +82,8 @@ const notifications = useNotificationStore();
 const searchStore = useSearchStore();
 
 const workspaceId = computed(() => route.params.workspaceId as string);
+const canEditWorkspace = computed(() =>
+  authStore.canWriteScoped([`workspace::${workspaceId.value}`]));
 const showCreateForm = ref<boolean>(false);
 
 useResourceSearch((value) => {
