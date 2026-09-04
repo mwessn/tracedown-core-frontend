@@ -5,7 +5,7 @@
           {{ t('agents.connectHint') }}
         </p>
 
-        <div class="flex items-end gap-2 flex-wrap">
+        <div class="flex items-end gap-2 flex-wrap max-md:flex-col max-md:items-stretch">
           <div>
             <p class="text-xs text-text-secondary mb-1">
               {{ t('agents.slug') }}
@@ -30,7 +30,7 @@
           <PrimaryButton
             :label-text="t('agents.generateToken')"
             :loading="generating"
-            :disabled="!slugValid"
+            :disabled="!slugValid || slugTaken"
             :on-click="handleGenerate"
           />
         </div>
@@ -39,6 +39,12 @@
           class="text-xs text-status-warning"
         >
           {{ t('agents.slugInvalid') }}
+        </p>
+        <p
+          v-else-if="slugTaken"
+          class="text-xs text-status-warning"
+        >
+          {{ t('agents.slugTaken') }}
         </p>
       </template>
 
@@ -58,12 +64,61 @@
         <p class="text-sm text-text-primary pt-1">
           {{ t('agents.startCommand') }}
         </p>
+
+        <!-- Where the agent keeps response bodies decides which variables the
+             command carries and whether it mounts a volume. The choice only
+             switches templates: bucket settings are placeholders the operator
+             fills in where the agent starts, never typed here. -->
+        <div class="flex items-end gap-2 flex-wrap max-md:flex-col max-md:items-stretch">
+          <div>
+            <p class="text-xs text-text-secondary mb-1">
+              {{ t('agents.storage.label') }}
+            </p>
+            <AppSelect
+              v-model="storage"
+              class="w-52"
+              :options="storageOptions"
+            />
+          </div>
+        </div>
+        <p
+          v-if="storage === 's3'"
+          class="text-xs text-text-secondary"
+        >
+          {{ t('agents.storage.s3Note') }}
+        </p>
+
+        <!-- One bootstrap, two ways to hand it to the agent: the container
+             command, or the bare variables for an agent started by systemd, a
+             VM image or a pip install. -->
+        <TabBar
+          v-model="startMode"
+          variant="pills"
+          :tabs="startModeTabs"
+        />
         <CopyField
-          :value="startCommand"
+          :value="startMode === 'docker' ? startCommand : startEnvironment"
           multiline
         />
-        <p class="text-xs text-text-secondary">
-          {{ t('agents.startCommandHint') }}
+        <template v-if="startMode === 'docker'">
+          <p class="text-xs text-text-secondary">
+            {{ t('agents.startCommandHint') }}
+          </p>
+          <p class="text-xs text-text-secondary">
+            {{ t('agents.startCommandImageNote', { image: AGENT_IMAGE }) }}
+          </p>
+        </template>
+        <p
+          v-else
+          class="text-xs text-text-secondary"
+        >
+          {{ t('agents.startEnvironmentHint', { slug: issued.slug }) }}
+        </p>
+        <p
+          v-if="!issued.schedulerUrl"
+          class="text-xs text-status-warning"
+        >
+          {{ t('agents.schedulerUrlUnset', { url: COMPOSE_SCHEDULER_URL }) }}
         </p>
       </div>
     </div>
@@ -73,11 +128,22 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import CopyField from '@/components/common/CopyField.vue';
+import TabBar from '@/components/core/TabBar.vue';
+import AppSelect from '@/components/core/input/AppSelect.vue';
 import PrimaryButton from '@/components/core/buttons/PrimaryButton.vue';
 import TextInput from '@/components/core/input/TextInput.vue';
 import { useAgentStore } from '@/store/core/agent';
 import { useNotificationStore } from '@/store/ui/notifications';
 import type { BootstrapTokenResponse } from '@/data/agents/AgentDto';
+import type { DisplayTab } from '@/types/ui/tabs';
+import type { SelectOption } from '@/types/ui/common';
+import {
+  AGENT_IMAGE,
+  COMPOSE_SCHEDULER_URL,
+  agentDockerCommand,
+  agentEnvFile,
+} from '@/lib/agentStartup';
+import type { AgentStartupInput } from '@/lib/agentStartup';
 
 /**
  * "Connect a new agent" flow: slug/label → one-time bootstrap token →
@@ -113,30 +179,48 @@ const slugValid = computed(() =>
   newSlug.value.trim().length > 0 && SLUG_RE.test(fullSlug.value));
 
 /**
- * Full local startup command (locally built image; swaps to the published
- * Docker Hub image once released).
+ * A token for a slug that is already an agent can never be redeemed —
+ * registration refuses it — and the gateway refuses to issue one. Catching it
+ * against the loaded fleet first saves the round trip; the server check still
+ * covers an agent registered since the list was fetched.
  */
-const startCommand = computed(() => {
-  if (!issued.value) return '';
-  return [
-    `docker run -d \\`,
-    `  --name tracedown-agent-${issued.value.slug} \\`,
-    // The hostname MUST be the slug. The agent registers itself as
-    // https://<its own FQDN>:<port>, and the certificate it is issued carries
-    // the slug as its SAN — which the scheduler pins. Without this the
-    // container's FQDN is its container id, and every dispatch fails against a
-    // name the certificate does not carry.
-    `  --hostname ${issued.value.slug} \\`,
-    `  --network tracedown_tracedown-net \\`,
-    `  -v tracedown_tracedown-bodies:/data/bodies \\`,
-    `  -e PROBE_AGENT_BOOTSTRAP_TOKEN="${issued.value.token}" \\`,
-    `  -e PROBE_AGENT_SCHEDULER_URL=http://tracedown-gateway:20714 \\`,
-    `  -e PROBE_AGENT_PORT=8443 \\`,
-    `  -e PROBE_AGENT_STORAGE_BACKEND=filesystem \\`,
-    `  -e PROBE_AGENT_STORAGE_DIR=/data/bodies \\`,
-    `  tracedown-agent`,
-  ].join('\n');
+const slugTaken = computed(() =>
+  agentStore.agents.some(agent => agent.slug === fullSlug.value));
+
+/** Which rendering of the same bootstrap is on screen. */
+const startMode = ref<string>('docker');
+
+const startModeTabs = computed<DisplayTab[]>(() => [
+  { key: 'docker', label: t('agents.startModeDocker') },
+  { key: 'environment', label: t('agents.startModeEnvironment') },
+]);
+
+/** Where the agent keeps response bodies — picks the template. */
+const storage = ref<string>('filesystem');
+
+const storageOptions = computed<SelectOption[]>(() => [
+  { value: 'filesystem', label: t('agents.storage.filesystem') },
+  { value: 's3', label: t('agents.storage.s3') },
+]);
+
+/**
+ * Everything the two renderings are generated from. The enrolment address
+ * comes from the gateway with the token — it is the one thing the browser
+ * cannot know, and `null` (nothing configured) is answered with the shipped
+ * stack's internal address plus a warning, not a silent guess.
+ */
+const startup = computed<AgentStartupInput | null>(() => {
+  if (!issued.value) return null;
+  return {
+    slug: issued.value.slug,
+    token: issued.value.token,
+    schedulerUrl: issued.value.schedulerUrl ?? null,
+    storage: storage.value === 's3' ? 's3' : 'filesystem',
+  };
 });
+
+const startCommand = computed(() => (startup.value ? agentDockerCommand(startup.value) : ''));
+const startEnvironment = computed(() => (startup.value ? agentEnvFile(startup.value) : ''));
 
 async function handleGenerate() {
   if (generating.value) return;

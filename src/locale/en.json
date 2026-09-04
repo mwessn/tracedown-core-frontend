@@ -72,7 +72,12 @@
     "domains": "Domains",
     "apiKeys": "API keys",
     "audit": "Audit log",
-    "account": "My account"
+    "account": "My account",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "openSearch": "Open search",
+    "closeSearch": "Close search"
   },
   "agents": {
     "noProbes": "No probes registered",
@@ -91,6 +96,7 @@
     "connectHint": "Generates a one-time bootstrap token (valid 1 hour). The agent registers itself with it on startup and is issued its mTLS identity.",
     "slug": "Slug",
     "slugPlaceholder": "eu-west-agent",
+    "slugTaken": "An agent is already registered under this slug.",
     "label": "Label (optional)",
     "slugInvalid": "Lowercase letters, digits and dashes only.",
     "generateToken": "Generate token",
@@ -99,7 +105,18 @@
     "activate": "Activate agent",
     "deactivate": "Deactivate agent (excluded from probe dispatch)",
     "startCommand": "Start the agent",
-    "startCommandHint": "Runs the locally built agent image against this stack. Adjust the network/scheduler URL when the agent runs on another host.",
+    "startModeDocker": "Docker",
+    "startModeEnvironment": "Environment",
+    "startCommandHint": "Runs the published agent image with the settings shown. The scheduler URL is the address this gateway is configured with; adjust it only if the agent reaches the gateway another way.",
+    "schedulerUrlUnset": "This gateway has no public URL configured, so the address shown ({url}) is the shipped Docker stack’s internal one and only works on that network. Set GATEWAY_PUBLIC_URL on the gateway to have the real address filled in.",
+    "storage": {
+      "label": "Response body storage",
+      "filesystem": "Filesystem (volume)",
+      "s3": "S3-compatible bucket",
+      "s3Note": "The bucket settings are placeholders to fill in where the agent starts. Region auto suits R2 and is ignored by MinIO; AWS S3 wants the real one. PROBE_AGENT_S3_PREFIX scopes keys within the bucket if you need it."
+    },
+    "startCommandImageNote": "The image is {image} on Docker Hub. Substitute your own name if you build the agent yourself.",
+    "startEnvironmentHint": "The same settings as environment variables, for an agent started any other way — a systemd unit, a VM image, a pip install. Paste them into its environment file. Set the machine's hostname to {slug} as well: the agent registers itself under its own hostname, and the certificate it is issued carries that name — which the scheduler pins. A hostname that is not the slug fails every dispatch.",
     "history": "Health history",
     "noChecks": "No health checks in this window.",
     "passRate": "{rate}% passed ({total} checks)",
@@ -144,6 +161,7 @@
     "noServices": "No services yet",
     "noServicesDescription": "Create a service to start monitoring an endpoint.",
     "selectService": "Select a service to view details",
+    "backToServices": "Back to services",
     "namePlaceholder": "Service name",
     "labelField": "Label",
     "labelPlaceholder": "Optional display label",
@@ -533,6 +551,7 @@
       },
       "verifyStep": {
         "description": "Scan the QR code with your authenticator app, or enter the setup key manually, then enter the 6-digit code to confirm.",
+        "openApp": "Open in authenticator app",
         "qrPlaceholder": "QR code unavailable",
         "secretLabel": "Setup key",
         "codeLabel": "6-digit code",
@@ -580,6 +599,7 @@
     "invalid_uuid": "Invalid identifier.",
     "not_found": "The requested resource was not found.",
     "already_exists": "This item already exists.",
+    "agent_slug_taken": "An agent is already registered under this slug.",
     "version_conflict": "This was changed by someone else while you were editing. Reload it and reapply your change.",
     "forbidden": "You do not have access to this resource.",
     "not_org_member": "You are not a member of this organization.",
@@ -649,6 +669,11 @@
     "saveToFile": "Save to file (.lace)",
     "loadFromFile": "Load from file",
     "loadFailed": "Could not read the file.",
+    "scriptTitle": "{name} script",
+    "editScript": "Edit script",
+    "viewScript": "View script",
+    "emptyScript": "No script yet.",
+    "moreLines": "+{count} more lines",
     "othersEditing": "Editing live with {names}"
   },
   "presets": {
