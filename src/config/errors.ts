@@ -37,6 +37,17 @@ export type ErrorCode =
   | 'already_exists'
   | 'agent_slug_taken'
   | 'version_conflict'
+  // Body stores
+  | 'body_store_not_found'
+  | 'body_store_in_use'
+  | 'body_store_name_taken'
+  | 'invalid_store_kind'
+  | 'invalid_store_mode'
+  | 'store_field_required'
+  | 'body_store_location_locked'
+  | 'body_store_unavailable'
+  | 'body_gone'
+  | 'body_too_large'
   // Permissions
   | 'forbidden'
   | 'not_org_member'
