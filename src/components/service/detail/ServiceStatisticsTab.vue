@@ -22,6 +22,17 @@
       />
 
       <template v-else>
+        <!--  The window at a glance, before any of the trends: one cell per
+              bucket, so an outage is a red mark you find without reading an
+              axis.  -->
+        <section>
+          <SectionHeading class="mb-2" :label="t('statistics.statusStrip')" />
+          <StatusStrip
+            :buckets="overall"
+            :bucket-type="stats!.bucketType"
+          />
+        </section>
+
         <!-- Headline figures over the selected window. -->
         <!--  `sm` (640px) is still inside the phone range — four tiles across a
               390px screen truncate their own numbers, so the split is `md`.  -->
@@ -51,10 +62,10 @@
 
         <section>
           <SectionHeading class="mb-2" :label="t('statistics.latencyTrend')" />
-          <StatSeriesChart
-            mode="latency"
+          <LatencyTrendChart
             :buckets="overall"
             :bucket-type="stats!.bucketType"
+            :regions="regions"
           />
         </section>
 
@@ -135,6 +146,8 @@ import LoadingState from '@/components/core/LoadingState.vue';
 import EmptyState from '@/components/core/EmptyState.vue';
 import ResponsiveTable from '@/components/core/ResponsiveTable.vue';
 import StatSeriesChart from '@/components/core/graphs/StatSeriesChart.vue';
+import StatusStrip from '@/components/core/graphs/StatusStrip.vue';
+import LatencyTrendChart from '@/components/core/graphs/LatencyTrendChart.vue';
 import EndpointCodesChart from '@/components/core/graphs/EndpointCodesChart.vue';
 import EndpointPhasesChart from '@/components/core/graphs/EndpointPhasesChart.vue';
 import { useStatisticsStore, type StatWindow } from '@/store/core/statistics';
@@ -143,7 +156,7 @@ import { useProjectStore } from '@/store/core/project';
 import { useNotificationStore } from '@/store/ui/notifications';
 import { formatMs } from '@/lib/metrics-utils';
 import type { ServiceSummary } from '@/data/services/ServiceDto';
-import type { EndpointStat, StatBucket } from '@/data/metrics/MetricsDto';
+import type { EndpointStat, RegionSeries, StatBucket } from '@/data/metrics/MetricsDto';
 import type { DataColumn } from '@/types/ui/table';
 import type { SelectOption } from '@/types/ui/common';
 import { storeToRefs } from 'pinia';
@@ -175,6 +188,7 @@ const windowOptions = computed<SelectOption[]>(() => [
 ]);
 
 const overall = computed<StatBucket[]>(() => stats.value?.overall ?? []);
+const regions = computed<RegionSeries[]>(() => stats.value?.regions ?? []);
 const hasData = computed(() => overall.value.length > 0);
 
 /** Empty for a backend that does not send the per-endpoint breakdown yet. */
@@ -225,7 +239,7 @@ const regionColumns = computed<DataColumn[]>(() => [
 ]);
 
 const regionRows = computed(() =>
-  (stats.value?.regions ?? []).map(r => ({
+  regions.value.map(r => ({
     agentId: r.agentId,
     agentLabel: r.agentLabel,
     uptime: pct(weighted(r.buckets, x => x.uptimePct)),

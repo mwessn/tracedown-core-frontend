@@ -31,5 +31,23 @@
   --chart-phase-tls: #a78bfa;
   --chart-phase-ttfb: #f59e0b;
   --chart-phase-transfer: #2dd4bf;
+
+  /* Categorical series slots — one per region, one per endpoint. Identity, not
+     magnitude and not a verdict: deliberately none of the status colours, so a
+     region line is never mistaken for "this region failed".
+
+     Eight hues, stepped for this app's dark ground (#222729) and kept in this
+     order on purpose: every neighbouring pair stays apart under protanopia,
+     deuteranopia and tritanopia, and all eight clear 3:1 against the ground. A
+     ninth series does not get a generated colour — it reuses a slot, which is
+     why the legend is always drawn. */
+  --chart-series-1: #3987e5;
+  --chart-series-2: #d95926;
+  --chart-series-3: #199e70;
+  --chart-series-4: #c98500;
+  --chart-series-5: #d55181;
+  --chart-series-6: #008300;
+  --chart-series-7: #9085e9;
+  --chart-series-8: #e66767;
 }
 
