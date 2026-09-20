@@ -142,8 +142,11 @@ export interface ServiceEndpointSeries {
   bucketType: string;
   /** Ascending union of every bucket start in the response — the shared x axis. */
   buckets: string[];
-  /** The whole service, including endpoints the cap dropped. */
-  all: { points: EndpointSeriesPoint[] };
+  /**
+   * The whole service, including endpoints the cap dropped — a bare series of
+   * points, with no key, method or template of its own.
+   */
+  all: EndpointSeriesPoint[];
   endpoints: EndpointSeries[];
   endpointsTruncated: boolean;
 }

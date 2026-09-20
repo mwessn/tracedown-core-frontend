@@ -62,7 +62,7 @@ watch(options, (list) => {
 });
 
 const points = computed<EndpointSeriesPoint[]>(() => {
-  if (selected.value === ALL) return props.series.all.points;
+  if (selected.value === ALL) return props.series.all;
   return props.series.endpoints.find(e => e.key === selected.value)?.points ?? [];
 });
 

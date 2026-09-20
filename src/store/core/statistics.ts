@@ -15,6 +15,10 @@ export type StatWindow = '24h' | '7d' | '30d' | '90d';
 /** Lookback of the failure heatmap, in days. Its own span, not the selected window. */
 export const HEATMAP_DAYS = 90;
 
+/** The lookback the route accepts; anything outside it is rejected, not clamped. */
+export const HEATMAP_DAYS_MIN = 1;
+export const HEATMAP_DAYS_MAX = 365;
+
 /**
  * A statistics sub-resource that may simply not be there.
  *
@@ -122,11 +126,16 @@ export const useStatisticsStore = defineStore('statistics', () => {
     );
   }
 
-  /** Failure rate by hour and weekday. Its lookback is fixed, not the selected window. */
+  /**
+   * Failure rate by hour and weekday. Its lookback is fixed, not the selected
+   * window, and is held inside the range the route accepts — an out-of-range
+   * `days` is a 400 there, never a clamp, and this read has no error to show.
+   */
   function fetchFailureHeatmap(serviceId: string, days = HEATMAP_DAYS, force = false): Promise<ActionResult> {
+    const span = Math.min(HEATMAP_DAYS_MAX, Math.max(HEATMAP_DAYS_MIN, Math.trunc(days)));
     return heatmap.load(
-      `${serviceId}:${days}`,
-      `/services/${serviceId}/metrics/statistics/failure-heatmap?days=${days}`,
+      `${serviceId}:${span}`,
+      `/services/${serviceId}/metrics/statistics/failure-heatmap?days=${span}`,
       force,
     );
   }

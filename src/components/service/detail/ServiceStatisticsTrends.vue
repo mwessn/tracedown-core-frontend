@@ -68,7 +68,7 @@ const store = useStatisticsStore();
 const { endpointSeries: series, assertionStats, failureHeatmap } = storeToRefs(store);
 
 const hasPhaseTrend = computed(() =>
-  series.value != null && series.value.buckets.length > 0 && hasPhasePoints(series.value.all.points));
+  series.value != null && series.value.buckets.length > 0 && hasPhasePoints(series.value.all));
 
 const hasSizeTrend = computed(() =>
   series.value != null && buildSizeTrend(series.value).length > 0);

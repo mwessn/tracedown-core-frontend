@@ -39,7 +39,7 @@ function series(over: Partial<ServiceEndpointSeries> = {}): ServiceEndpointSerie
     window: '24h',
     bucketType: 'hourly',
     buckets: BUCKETS,
-    all: { points: [point()] },
+    all: [point()],
     endpoints: [endpoint()],
     endpointsTruncated: false,
     ...over,
@@ -79,6 +79,12 @@ describe('buildPhaseTrend', () => {
   it('leaves a gap where a bucket timed no call at all', () => {
     const trend = buildPhaseTrend(BUCKETS, [point({ phases: null })]);
     expect(trend[3].values).toEqual([null, null, null]);
+  });
+
+  it('reads the service-wide series straight off `all`, which carries no wrapper', () => {
+    const whole = series();
+    const trend = buildPhaseTrend(whole.buckets, whole.all);
+    expect(trend.map(s => s.values[0])).toEqual([1, 2, 3, 4, 5]);
   });
 
   it('takes each phase colour from the phase tokens', () => {
