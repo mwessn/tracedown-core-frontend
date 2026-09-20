@@ -118,6 +118,14 @@
             :window="window"
           />
         </section>
+
+        <!--  Panels on the deeper reads (series, assertions, heatmap). They
+              fetch their own data and hide themselves when a backend has none
+              of it, so nothing here depends on them.  -->
+        <ServiceStatisticsTrends
+          :service-id="service.id"
+          :window="window"
+        />
       </template>
 
       <!--  Host panels, after everything built in. Rendered whatever the
@@ -150,6 +158,7 @@ import StatusStrip from '@/components/core/graphs/StatusStrip.vue';
 import LatencyTrendChart from '@/components/core/graphs/LatencyTrendChart.vue';
 import EndpointCodesChart from '@/components/core/graphs/EndpointCodesChart.vue';
 import EndpointPhasesChart from '@/components/core/graphs/EndpointPhasesChart.vue';
+import ServiceStatisticsTrends from '@/components/service/detail/ServiceStatisticsTrends.vue';
 import { useStatisticsStore, type StatWindow } from '@/store/core/statistics';
 import { getServiceStatisticsPanels } from '@/config/extensions';
 import { useProjectStore } from '@/store/core/project';

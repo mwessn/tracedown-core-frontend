@@ -82,8 +82,12 @@ export function shortTemplate(template: string, maxLength = 40): string {
   return body.length > maxLength ? `…${body.slice(body.length - maxLength + 1)}` : body;
 }
 
-/** Axis label for one endpoint: `GET /orders/{orderId}`. */
-export function endpointLabel(endpoint: EndpointStat, maxLength?: number): string {
+/**
+ * Axis label for one endpoint: `GET /orders/{orderId}`. Takes the method and
+ * the template alone, so the series payloads label themselves the same way the
+ * window aggregates do.
+ */
+export function endpointLabel(endpoint: Pick<EndpointStat, 'method' | 'template'>, maxLength?: number): string {
   return `${endpoint.method} ${shortTemplate(endpoint.template, maxLength)}`;
 }
 
