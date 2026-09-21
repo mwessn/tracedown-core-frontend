@@ -15,7 +15,7 @@ import { cssVar, withAlpha } from '@/lib/charts';
 import { formatBucketLabel, formatMs } from '@/lib/metrics-utils';
 import type { ChartData, ChartOptions, TooltipItem } from 'chart.js';
 import type { StatBucket } from '@/data/metrics/MetricsDto';
-import { lowerPercentBounds, upperPercentBounds } from '@/utils/percentAxis';
+import { fixedPercentScale, PERCENT_EDGE_CLIP_PX } from '@/utils/percentScale';
 
 /**
  * A statistics time series read from `probe_aggregates`. `uptime` mode plots the
@@ -47,8 +47,11 @@ const chartData = computed<ChartData>(() => {
           pointRadius: 0,
           borderWidth: 1.5,
           cubicInterpolationMode: 'monotone' as const,
+          // Both series are percentages on the same fixed scale, so they share
+          // one axis: a second one would repeat its labels down the other side.
           yAxisID: 'y',
           spanGaps: true,
+          clip: PERCENT_EDGE_CLIP_PX,
         },
         {
           label: t('statistics.errorRatePct'),
@@ -58,8 +61,9 @@ const chartData = computed<ChartData>(() => {
           pointRadius: 0,
           borderWidth: 1.5,
           cubicInterpolationMode: 'monotone' as const,
-          yAxisID: 'yErr',
+          yAxisID: 'y',
           spanGaps: true,
+          clip: PERCENT_EDGE_CLIP_PX,
         },
       ],
     };
@@ -87,6 +91,7 @@ const chartData = computed<ChartData>(() => {
 const chartOptions = computed<ChartOptions>(() => {
   const textColor = cssVar('--color-text-secondary');
   const gridColor = cssVar('--chart-grid');
+  const scale = fixedPercentScale();
   const base = {
     interaction: { mode: 'index' as const, intersect: false },
     plugins: {
@@ -100,17 +105,12 @@ const chartOptions = computed<ChartOptions>(() => {
         x: { ticks: { color: textColor, maxTicksLimit: 8 }, grid: { display: false } },
         y: {
           position: 'left',
-          // Auto-scaled (not zero-based) so small uptime dips near 100% are
-          // visible — but never past 100, which a flat series otherwise gets.
-          ...upperPercentBounds(props.buckets.map(b => b.uptimePct)),
-          ticks: { color: textColor, callback: (v) => `${v}%` },
+          // Fixed 0–100, never scaled to the data: a 30% error rate and a 50%
+          // one have to look different, and they only do on a scale that does
+          // not move under them.
+          ...scale,
+          ticks: { ...scale.ticks, color: textColor, callback: (v) => `${v}%` },
           grid: { color: gridColor },
-        },
-        yErr: {
-          position: 'right',
-          ...lowerPercentBounds(props.buckets.map(b => b.errorRatePct)),
-          ticks: { color: textColor, callback: (v) => `${v}%` },
-          grid: { display: false },
         },
       },
       plugins: {

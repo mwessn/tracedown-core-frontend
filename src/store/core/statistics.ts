@@ -1,11 +1,64 @@
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import { defineStore } from 'pinia';
 import { http } from '@/config/requests';
-import type { ServiceStatistics } from '@/data/metrics/MetricsDto';
+import type {
+  ServiceAssertionStats,
+  ServiceEndpointSeries,
+  ServiceFailureHeatmap,
+  ServiceStatistics,
+} from '@/data/metrics/MetricsDto';
 import type { ActionResult } from '@/types/actions';
 
 /** Windows the statistics endpoint accepts (short → hourly buckets, long → daily). */
 export type StatWindow = '24h' | '7d' | '30d' | '90d';
+
+/** Lookback of the failure heatmap, in days. Its own span, not the selected window. */
+export const HEATMAP_DAYS = 90;
+
+/** The lookback the route accepts; anything outside it is rejected, not clamped. */
+export const HEATMAP_DAYS_MIN = 1;
+export const HEATMAP_DAYS_MAX = 365;
+
+/**
+ * A statistics sub-resource that may simply not be there.
+ *
+ * The three deep reads (`endpoint-series`, `assertions`, `failure-heatmap`)
+ * arrived after the statistics route did, so a backend one release behind
+ * answers 404 for them. That is not an error to report — it is a panel the
+ * server has nothing for, and the tab hides it. The transport hands back a
+ * resolved code rather than a status, so *any* failure leaves the data null and
+ * the panel hidden; a 5xx is still surfaced globally by the requests layer.
+ */
+function optionalResource<T>() {
+  const data = ref<T | null>(null) as Ref<T | null>;
+  const key = ref<string | null>(null);
+  let generation = 0;
+
+  async function load(nextKey: string, url: string, force: boolean): Promise<ActionResult> {
+    if (!force && key.value === nextKey && data.value) return { ok: true };
+    if (key.value !== nextKey) {
+      data.value = null;
+      key.value = null;
+    }
+    const gen = ++generation;
+    const res = await http.get<T>(url, { disableLoading: true });
+    // A newer fetch superseded this one — never overwrite fresher data.
+    if (gen !== generation) return { ok: true };
+    if (!res.success || !res.data) {
+      return { ok: false, message: res.errorInfo?.message };
+    }
+    data.value = res.data;
+    key.value = nextKey;
+    return { ok: true };
+  }
+
+  function clear(): void {
+    data.value = null;
+    key.value = null;
+  }
+
+  return { data, load, clear };
+}
 
 /**
  * Deep per-service statistics read from `probe_aggregates`: the overall
@@ -51,11 +104,61 @@ export const useStatisticsStore = defineStore('statistics', () => {
     }
   }
 
+  const series = optionalResource<ServiceEndpointSeries>();
+  const assertions = optionalResource<ServiceAssertionStats>();
+  const heatmap = optionalResource<ServiceFailureHeatmap>();
+
+  /** Per-endpoint phase and size series over the window. */
+  function fetchEndpointSeries(serviceId: string, window: StatWindow, force = false): Promise<ActionResult> {
+    return series.load(
+      `${serviceId}:${window}`,
+      `/services/${serviceId}/metrics/statistics/endpoint-series?window=${window}`,
+      force,
+    );
+  }
+
+  /** The window's most-failing assertions, ranked. */
+  function fetchAssertions(serviceId: string, window: StatWindow, force = false): Promise<ActionResult> {
+    return assertions.load(
+      `${serviceId}:${window}`,
+      `/services/${serviceId}/metrics/statistics/assertions?window=${window}`,
+      force,
+    );
+  }
+
+  /**
+   * Failure rate by hour and weekday. Its lookback is fixed, not the selected
+   * window, and is held inside the range the route accepts — an out-of-range
+   * `days` is a 400 there, never a clamp, and this read has no error to show.
+   */
+  function fetchFailureHeatmap(serviceId: string, days = HEATMAP_DAYS, force = false): Promise<ActionResult> {
+    const span = Math.min(HEATMAP_DAYS_MAX, Math.max(HEATMAP_DAYS_MIN, Math.trunc(days)));
+    return heatmap.load(
+      `${serviceId}:${span}`,
+      `/services/${serviceId}/metrics/statistics/failure-heatmap?days=${span}`,
+      force,
+    );
+  }
+
   /** Drops cached state (on navigation away from a service). */
   function clear(): void {
     stats.value = null;
     key.value = null;
+    series.clear();
+    assertions.clear();
+    heatmap.clear();
   }
 
-  return { stats, loading, fetchStatistics, clear };
+  return {
+    stats,
+    loading,
+    endpointSeries: series.data,
+    assertionStats: assertions.data,
+    failureHeatmap: heatmap.data,
+    fetchStatistics,
+    fetchEndpointSeries,
+    fetchAssertions,
+    fetchFailureHeatmap,
+    clear,
+  };
 });

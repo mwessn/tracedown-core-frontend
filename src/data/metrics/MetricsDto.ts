@@ -110,6 +110,107 @@ export interface EndpointStat {
   avgSizeBytes: number | null;
 }
 
+/**
+ * One bucket of one endpoint's series. Sparse: a bucket in which the endpoint
+ * was not called has no point at all, which is not the same as a zero.
+ */
+export interface EndpointSeriesPoint {
+  bucketStart: string;
+  calls: number;
+  /** Bucket averages over the calls that carried timings; null when none did. */
+  phases: EndpointPhases | null;
+  /** Bucket average over the calls that reported a size; null when none did. */
+  avgSizeBytes: number | null;
+}
+
+/** One endpoint's points across the window, ascending by bucket start. */
+export interface EndpointSeries {
+  key: string;
+  method: string;
+  template: string;
+  points: EndpointSeriesPoint[];
+}
+
+/**
+ * Per-endpoint series over the window (`…/metrics/statistics/endpoint-series`).
+ * A sub-resource of its own: it is two orders of magnitude bigger than the
+ * statistics read, which the tab polls.
+ */
+export interface ServiceEndpointSeries {
+  window: string;
+  /** "hourly" | "daily" — the same mapping the statistics read uses. */
+  bucketType: string;
+  /** Ascending union of every bucket start in the response — the shared x axis. */
+  buckets: string[];
+  /**
+   * The whole service, including endpoints the cap dropped — a bare series of
+   * points, with no key, method or template of its own.
+   */
+  all: EndpointSeriesPoint[];
+  endpoints: EndpointSeries[];
+  endpointsTruncated: boolean;
+}
+
+/**
+ * One assertion of one endpoint, identified by its *declared* side only — what
+ * the target answered is never part of the identity.
+ */
+export interface AssertionStat {
+  endpointKey: string;
+  method: string;
+  template: string;
+  /** `expect` | `check` | `assert`, verbatim — anything else passes through. */
+  assertionMethod: string;
+  /** Scope assertions (`.expect()` / `.check()`); null for an `assert` condition. */
+  scope: string | null;
+  op: string | null;
+  expected: string | null;
+  /** `assert` conditions; null for a scope assertion. */
+  kind: string | null;
+  expression: string | null;
+  failures: number;
+  evaluations: number;
+  failureRatePct: number;
+  /** Never null — only assertions that failed are returned. */
+  lastFailedAt: string;
+}
+
+/** Most-failing assertions over the window (`…/metrics/statistics/assertions`). */
+export interface ServiceAssertionStats {
+  window: string;
+  /** Lower bound actually scanned — later than the window when the scan cap bit. */
+  since: string;
+  until: string;
+  /** True when the scan stopped at its run cap, so `since` is not the window's start. */
+  truncated: boolean;
+  assertions: AssertionStat[];
+}
+
+/** One hour of one weekday, in UTC. Only cells with runs are returned. */
+export interface FailureHeatmapCell {
+  /** ISO-8601 weekday: 1 = Monday … 7 = Sunday. */
+  weekday: number;
+  /** 0..23, UTC. */
+  hour: number;
+  runs: number;
+  failedRuns: number;
+}
+
+/** Failure rate by hour and weekday (`…/metrics/statistics/failure-heatmap`). */
+export interface ServiceFailureHeatmap {
+  days: number;
+  /** Always "UTC" — the grid is extracted in UTC and labelled as such. */
+  timezone: string;
+  since: string;
+  until: string;
+  /** Oldest / newest hour that carried runs; null for a service with no history. */
+  coveredFrom: string | null;
+  coveredTo: string | null;
+  totalRuns: number;
+  totalFailedRuns: number;
+  cells: FailureHeatmapCell[];
+}
+
 /** Deep service statistics from `probe_aggregates`: overall trend + per-region breakdown. */
 export interface ServiceStatistics {
   window: string;
