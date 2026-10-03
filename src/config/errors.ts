@@ -39,6 +39,7 @@ export type ErrorCode =
   // Resources
   | 'not_found'
   | 'already_exists'
+  | 'binding_exists'
   | 'agent_slug_taken'
   | 'version_conflict'
   // Body stores

@@ -696,6 +696,7 @@
     "invalid_uuid": "Invalid identifier.",
     "not_found": "The requested resource was not found.",
     "already_exists": "This item already exists.",
+    "binding_exists": "This webhook is already bound to this resource.",
     "agent_slug_taken": "An agent is already registered under this slug.",
     "version_conflict": "This was changed by someone else while you were editing. Reload it and reapply your change.",
     "forbidden": "You do not have access to this resource.",
@@ -1032,7 +1033,25 @@
     "anyApiKey": "Any API key",
     "viaKey": "via key {name}",
     "viaDeletedKey": "via a deleted API key",
-    "deletedKeyChoice": "Deleted key {id}"
+    "deletedKeyChoice": "Deleted key {id}",
+    "entityTypes": {
+      "agent": "Agent",
+      "api-key": "API key",
+      "domain": "Domain",
+      "grafana-integration": "Grafana integration",
+      "group": "Group",
+      "invite": "Invite",
+      "notification-template": "Notification template",
+      "org": "Organization",
+      "project": "Project",
+      "rule-preset": "Rule preset",
+      "service": "Service",
+      "user": "User",
+      "variable": "Variable",
+      "webhook": "Webhook",
+      "webhook-binding": "Webhook binding",
+      "workspace": "Workspace"
+    }
   },
   "domains": {
     "title": "Verified domains",

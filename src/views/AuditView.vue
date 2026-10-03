@@ -162,7 +162,7 @@ const authStore = useAuthStore();
 const ENTITY_TYPES = [
   'agent', 'api-key', 'domain', 'grafana-integration', 'group', 'invite',
   'notification-template', 'org', 'project', 'rule-preset', 'service',
-  'user', 'webhook', 'webhook-binding', 'workspace',
+  'user', 'variable', 'webhook', 'webhook-binding', 'workspace',
 ];
 
 const actionFilter = ref<string>('');
@@ -201,7 +201,7 @@ const columns = computed<DataColumn[]>(() => [
 
 const entityOptions = computed<SelectOption[]>(() => [
   { value: '', label: t('audit.allEntities') },
-  ...ENTITY_TYPES.map(type => ({ value: type, label: type })),
+  ...ENTITY_TYPES.map(type => ({ value: type, label: t(`audit.entityTypes.${type}`) })),
 ]);
 
 const actorOptions = computed<SelectOption[]>(() => [
